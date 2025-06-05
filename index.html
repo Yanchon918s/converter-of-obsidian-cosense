@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obsidian ⇔ Consense 記法変換ツール (リアルタイム)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="bg-gray-100 min-h-screen p-4 md:p-8">
+    <div class="container mx-auto max-w-5xl bg-white p-6 sm:p-8 rounded-xl shadow-2xl">
+        <header class="mb-6 text-center">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-800">Obsidian ⇔ Consense 記法変換</h1>
+            <p class="text-gray-600 mt-2 text-sm sm:text-base">Obsidian Flavored Markdown と Consense (Scrapbox風)
+                記法をリアルタイムで相互に変換します。</p>
+        </header>
+
+        <div class="mb-6">
+            <label for="conversionDirection" class="block text-sm label-text mb-1">変換方向:</label>
+            <select id="conversionDirection"
+                class="w-full md:w-1/2 p-2.5 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <option value="o2c" selected>Obsidian → Consense</option>
+                <option value="c2o">Consense → Obsidian</option>
+            </select>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+                <label for="inputArea" class="block text-sm label-text mb-1">入力テキスト (変換元)</label>
+                <textarea id="inputArea"
+                    class="w-full p-3 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="ここに変換したいテキストを入力..."></textarea>
+            </div>
+            <div>
+                <label for="outputArea" class="block text-sm label-text mb-1">出力テキスト (変換後)</label>
+                <textarea id="outputArea" readonly
+                    class="w-full p-3 border rounded-md shadow-sm bg-gray-50 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="変換結果がここに表示されます..."></textarea>
+            </div>
+        </div>
+
+        <div class="flex flex-wrap gap-3 justify-center mb-8">
+            <button id="swapBtn" class="btn btn-secondary">入力と出力を入れ替え</button>
+            <button id="clearBtn" class="btn btn-danger">クリア</button>
+        </div>
+
+        <div id="conversionInfo">
+            <h3 class="font-semibold text-lg mb-3">主な変換ルール:</h3>
+            <ul class="list-disc list-inside space-y-1 text-gray-700">
+                <li><strong>Obsidian → Consense:</strong>
+                    <ul class="list-disc list-inside">
+                        <li>見出し:
+                            <ul class="list-disc list-inside">
+                                <li><code># H1</code> → <code>[**** H1]</code></li>
+                                <li><code>## H2</code> → <code>[*** H2]</code></li>
+                                <li><code>### H3</code> → <code>[** H3]</code></li>
+                                <li><code>#### H4</code> ～ <code>###### H6</code> → <code>[* H4～H6]</code></li>
+                            </ul>
+                        </li>
+                        <li>タグ: <code>#tag</code> → <code>#tag</code> (そのまま保持)</li>
+                        <li>内部リンク: <code>[[link]]</code> → <code>[[link]]</code> (そのまま保持)</li>
+                        <li>太字: <code>**bold**</code> → <code>[* bold]</code></li>
+                        <li>斜体: <code>*italic*</code> → <code>[/ italic]</code></li>
+                    </ul>
+                </li>
+                <li class="mt-3"><strong>Consense → Obsidian:</strong>
+                    <ul class="list-disc list-inside">
+                        <li>見出し:
+                            <ul class="list-disc list-inside">
+                                <li><code>[**** Text]</code> (行全体): <code># Text</code> (Obsidian H1 見出し)</li>
+                                <li><code>[*** Text]</code> (行全体): <code>## Text</code> (Obsidian H2 見出し)</li>
+                                <li><code>[** Text]</code> (行全体): <code>### Text</code> (Obsidian H3 見出し)</li>
+                                <li><code>[* Text]</code> (行全体): <code>#### Text</code> (Obsidian H4 見出し)</li>
+                            </ul>
+                        </li>
+                        <li>タグ: <code>#tag</code> → <code>#tag</code> (そのまま保持)</li>
+                        <li>リンク: <code>[[link]]</code> → <code>[[link]]</code> (そのまま保持)</li>
+                        <li>太字: <code>[* text]</code> (インライン) → <code>**text**</code></li>
+                        <li>斜体: <code>[/ italic]</code> → <code>*italic*</code></li>
+                    </ul>
+                </li>
+                <li class="mt-3">YAML、表、コードブロック、リスト、チェックリスト、画像・リンク変換等も基本的な変換に対応。</li>
+                <li class="mt-1">変換はベストエフォートです。複雑な記述では手動調整が必要な場合があります。</li>
+                <li class="mt-1">日本語や特殊文字を含むタグ・リンクにも対応しています。</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

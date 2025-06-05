@@ -116,24 +116,44 @@ function obsidianToConsense(obsidianText) {
 
     let consenseText = consenseLines.join('\n');
 
-    // Obsidian Links は保持（変換しない）
-    // [[link]] → [[link]] (そのまま)
+    // Inline styles - ブラウザ互換性を考慮した処理
+    // 太字を先に処理してからイタリックを処理
     
-    // Images & External Links
-    consenseText = consenseText.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => `[${url.trim()}${alt.trim() ? ' ' + alt.trim() : ''}]`);
-    consenseText = consenseText.replace(/\[(.*?)\]\((.*?)\)/g, (match, text, url) => `[${url.trim()}${text.trim() ? ' ' + text.trim() : ''}]`);
-
-    // Inline styles - より精密な正規表現パターンに修正
-    // **text** → [* text] に変更
+    // 1. 打ち消し線付きのパターンを最初に処理
     consenseText = consenseText.replace(/~~(?:\*{3}|_{3})(.*?)(?:\*{3}|_{3})~~/g, '[-/*** $1]');
     consenseText = consenseText.replace(/~~(?:\*{2}|_{2})(.*?)(?:\*{2}|_{2})~~/g, '[-* $1]');
     consenseText = consenseText.replace(/~~(?:\*|_)(.*?)(?:\*|_)~~/g, '[-/* $1]');
+    
+    // 2. 太字と斜体の組み合わせ
     consenseText = consenseText.replace(/(?:\*{3}|_{3})(.*?)(?:\*{3}|_{3})/g, '[/*** $1]');
-    consenseText = consenseText.replace(/(?<!\*)\*{2}(?!\*)([^*]+?)\*{2}(?!\*)/g, '[* $1]');
-    consenseText = consenseText.replace(/(?<!\*)\*(?!\*)([^*\n]+?)\*(?!\*)/g, '[/ $1]');
-    consenseText = consenseText.replace(/(?<!_)_{2}(?!_)([^_]+?)_{2}(?!_)/g, '[* $1]');
-    consenseText = consenseText.replace(/(?<!_)_(?!_)([^_\n]+?)_(?!_)/g, '[/ $1]');
+    
+    // 3. 太字（** または __）
+    consenseText = consenseText.replace(/\*\*([^*\n]+?)\*\*/g, '[* $1]');
+    consenseText = consenseText.replace(/__([^_\n]+?)__/g, '[* $1]');
+    
+    // 4. 斜体（* または _）- 太字処理後にマーカーを置いて処理
+    // まず太字変換済みマーカーを設置
+    consenseText = consenseText.replace(/\[\*\s([^\]]+?)\]/g, '###BOLD###$1###/BOLD###');
+    
+    // 斜体変換
+    consenseText = consenseText.replace(/\*([^*\n]+?)\*/g, '[/ $1]');
+    consenseText = consenseText.replace(/_([^_\n]+?)_/g, '[/ $1]');
+    
+    // 太字マーカーを復元
+    consenseText = consenseText.replace(/###BOLD###([^#]+?)###\/BOLD###/g, '[* $1]');
+    
+    // 5. 打ち消し線
     consenseText = consenseText.replace(/~~(.*?)~~/g, '[- $1]');
+
+    // Obsidian Links は保持（変換しない）
+    // [[link]] → [[link]] (そのまま)
+    
+    // Images & External Links（インライン変換の後に処理）
+    consenseText = consenseText.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => `[${url.trim()}${alt.trim() ? ' ' + alt.trim() : ''}]`);
+    consenseText = consenseText.replace(/(?:^|[^!])\[(.*?)\]\((.*?)\)/g, (match, text, url) => {
+        const prefix = match.startsWith('!') ? '' : match[0]; // Preserve prefix if not '!'
+        return `${prefix}[${url.trim()}${text.trim() ? ' ' + text.trim() : ''}]`;
+    });
 
     consenseText = consenseText.replace(/\s\^[\w-]+/g, '');
     consenseText = consenseText.replace(/#\^([\w-]+)/g, '#$1');
@@ -265,7 +285,7 @@ function consenseToObsidian(consenseText) {
     // #tag → #tag (そのまま)
     // [[link]] → [[link]] (そのまま)
 
-    // Inline styles - より精密な処理
+    // Inline styles - より精密な処理（順序を調整）
     // [* text] → **text** に変更
     obsidianText = obsidianText.replace(/\[-\/\*\*\*\s+(.*?)\s*\]/g, '~~***$1***~~');
     obsidianText = obsidianText.replace(/\[-\*\s+(.*?)\s*\]/g, '~~**$1**~~');
@@ -275,7 +295,7 @@ function consenseToObsidian(consenseText) {
     obsidianText = obsidianText.replace(/\[\/\s+(.*?)\s*\]/g, '*$1*');
     obsidianText = obsidianText.replace(/\[-\s+(.*?)\s*\]/g, '~~$1~~');
 
-    // Images & External Links の基本的な処理のみ保持
+    // Images & External Links の基本的な処理のみ保持（インライン変換の後に処理）
     obsidianText = obsidianText.replace(/\[([^\]]+?)\]/g, (match, content) => {
         content = content.trim();
         const parts = content.split(/\s+/);

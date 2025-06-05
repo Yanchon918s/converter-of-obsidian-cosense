@@ -150,7 +150,10 @@ function obsidianToConsense(obsidianText) {
     
     // Images & External Links（インライン変換の後に処理）
     consenseText = consenseText.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => `[${url.trim()}${alt.trim() ? ' ' + alt.trim() : ''}]`);
-    consenseText = consenseText.replace(/(?<!\!)\[(.*?)\]\((.*?)\)/g, (match, text, url) => `[${url.trim()}${text.trim() ? ' ' + text.trim() : ''}]`);
+    consenseText = consenseText.replace(/(?:^|[^!])\[(.*?)\]\((.*?)\)/g, (match, text, url) => {
+        const prefix = match.startsWith('!') ? '' : match[0]; // Preserve prefix if not '!'
+        return `${prefix}[${url.trim()}${text.trim() ? ' ' + text.trim() : ''}]`;
+    });
 
     consenseText = consenseText.replace(/\s\^[\w-]+/g, '');
     consenseText = consenseText.replace(/#\^([\w-]+)/g, '#$1');

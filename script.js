@@ -145,8 +145,9 @@ function obsidianToConsense(obsidianText) {
     // 5. 打ち消し線
     consenseText = consenseText.replace(/~~(.*?)~~/g, '[- $1]');
 
-    // Obsidian Links は保持（変換しない）
-    // [[link]] → [[link]] (そのまま)
+    // Obsidian Internal Links の変換
+    // [[link]] → [link]
+    consenseText = consenseText.replace(/\[\[([^\]]+?)\]\]/g, '[$1]');
     
     // Images & External Links（インライン変換の後に処理）
     consenseText = consenseText.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => `[${url.trim()}${alt.trim() ? ' ' + alt.trim() : ''}]`);
@@ -281,9 +282,37 @@ function consenseToObsidian(consenseText) {
 
     let obsidianText = obsidianLines.join('\n');
 
-    // Tags と Links は保持（変換しない）
+    // Tags と Links の変換
     // #tag → #tag (そのまま)
-    // [[link]] → [[link]] (そのまま)
+    // [link] → [[link]] (内部リンクの復元)
+    
+    // まず、後で処理する装飾記法とリンクを保護
+    const linkRegex = /\[([^\[\]]*?)\]/g;
+    const links = [];
+    let linkIndex = 0;
+    
+    // 装飾記法以外のリンクを一時的に保護
+    obsidianText = obsidianText.replace(linkRegex, (match, content) => {
+        content = content.trim();
+        const parts = content.split(/\s+/);
+        const firstPart = parts[0];
+        
+        const isUrl = (s) => /^https?:\/\//.test(s) || s.startsWith('www.');
+        const isImg = (s) => /\.(jpeg|jpg|gif|png|svg|webp|bmp)$/i.test(s);
+        const isDecorative = /^[-\/\*\s]+/.test(content); // 装飾記法かチェック
+        
+        // 装飾記法、画像、外部URLの場合はそのまま
+        if (isDecorative || isImg(firstPart) || isUrl(firstPart) || 
+            (parts.length > 1 && (isImg(parts[parts.length - 1]) || isUrl(parts[parts.length - 1])))) {
+            return match;
+        }
+        
+        // それ以外は内部リンクとして処理
+        const placeholder = `###LINK_${linkIndex}###`;
+        links[linkIndex] = content;
+        linkIndex++;
+        return placeholder;
+    });
 
     // Inline styles - より精密な処理（順序を調整）
     // [* text] → **text** に変更
@@ -294,6 +323,11 @@ function consenseToObsidian(consenseText) {
     obsidianText = obsidianText.replace(/\[\*\s+(.*?)\s*\]/g, '**$1**');
     obsidianText = obsidianText.replace(/\[\/\s+(.*?)\s*\]/g, '*$1*');
     obsidianText = obsidianText.replace(/\[-\s+(.*?)\s*\]/g, '~~$1~~');
+
+    // 保護したリンクを内部リンクとして復元
+    obsidianText = obsidianText.replace(/###LINK_(\d+)###/g, (match, index) => {
+        return `[[${links[index]}]]`;
+    });
 
     // Images & External Links の基本的な処理のみ保持（インライン変換の後に処理）
     obsidianText = obsidianText.replace(/\[([^\]]+?)\]/g, (match, content) => {
